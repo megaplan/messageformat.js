@@ -1409,6 +1409,7 @@ function MessageFormat(locale, pluralFunc, formatters) {
   if (formatters) for (var f in formatters) {
     this.runtime.fmt[f] = formatters[f];
   }
+  this._useDefaultOther = false;
 }
 
 module.exports = MessageFormat;
@@ -1493,6 +1494,11 @@ MessageFormat.formatters = {
     }
     return (new Date(v)).toLocaleTimeString(lc, o)
   }
+};
+
+MessageFormat.prototype.useDefaultOther = function() {
+  this._useDefaultOther = true;
+  return this;
 };
 
 /** Enable or disable support for the default formatters, which require the
@@ -1656,7 +1662,8 @@ MessageFormat.prototype._precompile = function(ast, data) {
     case 'selectFormatPattern':
       data.pf_count = data.pf_count || 0;
       if (ast.type == 'selectFormatPattern') data.offset[data.pf_count] = 0;
-      var needOther = false;
+      if (this._useDefaultOther) addDefaultOtherFormIfNotExists(ast, data.keys[data.pf_count]);
+      var needOther = true;
       for (i = 0; i < ast.pluralForms.length; ++i) {
         var key = ast.pluralForms[i].key;
         if (key === 'other') needOther = false;
@@ -1680,6 +1687,30 @@ MessageFormat.prototype._precompile = function(ast, data) {
       throw new Error( 'Bad AST type: ' + ast.type );
   }
 };
+
+function addDefaultOtherFormIfNotExists(ast, argumentIndex) {
+  for (var i = 0; i < ast.pluralForms.length; ++i) {
+    var key = ast.pluralForms[i].key;
+    if (key === 'other') {
+      return;
+    }
+  }
+  // default other form is `other {argumentIndex}`
+  var defaultOtherForm = {
+    "key": "other",
+    "val":{
+      "type":"messageFormatPattern",
+      "statements":[
+        {
+          "type": "messageFormatElement",
+          "argumentIndex": argumentIndex,
+          "output": true
+        }
+      ]
+    }
+  };
+  ast.pluralForms.push(defaultOtherForm);
+}
 
 /** Compile messages into an executable function with clean string
  *  representation.
@@ -1883,7 +1914,6 @@ function(n, ord) {
     root.plurals = plurals;
   }
 }(this, {
-
 af: _cp[1],
 
 ak: _cp[2],
@@ -1939,7 +1969,8 @@ az: function(n, ord) {
 be: function(n, ord) {
   var s = String(n).split('.'), t0 = Number(s[0]) == n,
       n10 = t0 && s[0].slice(-1), n100 = t0 && s[0].slice(-2);
-  if (ord) return 'other';
+  if (ord) return ((n10 == 2
+          || n10 == 3) && n100 != 12 && n100 != 13) ? 'few' : 'other';
   return (n10 == 1 && n100 != 11) ? 'one'
       : ((n10 >= 2 && n10 <= 4) && (n100 < 12
           || n100 > 14)) ? 'few'
@@ -2126,7 +2157,7 @@ fy: _cp[3],
 
 ga: function(n, ord) {
   var s = String(n).split('.'), t0 = Number(s[0]) == n;
-  if (ord) return 'other';
+  if (ord) return (n == 1) ? 'one' : 'other';
   return (n == 1) ? 'one'
       : (n == 2) ? 'two'
       : ((t0 && n >= 3 && n <= 6)) ? 'few'
@@ -2241,7 +2272,7 @@ ig: _cp[0],
 
 ii: _cp[0],
 
-in: _cp[0],
+"in": _cp[0],
 
 is: function(n, ord) {
   var s = String(n).split('.'), i = s[0], t0 = Number(s[0]) == n,
@@ -2576,6 +2607,8 @@ sah: _cp[0],
 
 saq: _cp[1],
 
+sdh: _cp[1],
+
 se: function(n, ord) {
   if (ord) return 'other';
   return (n == 1) ? 'one'
@@ -2801,7 +2834,6 @@ zu: function(n, ord) {
   if (ord) return 'other';
   return (n >= 0 && n <= 1) ? 'one' : 'other';
 }
-
 }));
 
 },{}]},{},[2])(2)
