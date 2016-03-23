@@ -686,6 +686,32 @@ describe( "MessageFormat", function () {
         var mfunc = mf.compile("I have {FRIENDS, plural, one{one friend} other{friends}}.");
         expect(mfunc({FRIENDS:"toString"})).to.eql("I have friends.");
       });
+
+      it("should add default 'other' branch to selects", function() {
+        var mf = new MessageFormat( 'en' ).useDefaultOther();
+        var mfunc = mf.compile("{gender, select, male {Male} female {Female}}");
+        expect(mfunc({gender:"alien"})).to.eql("alien")
+      });
+
+      it("should add default 'other' branch to plurals", function() {
+        var mf = new MessageFormat( 'en' ).useDefaultOther();
+        var mfunc = mf.compile("{count, plural, =0 {Zero}}");
+        expect(mfunc({count:0})).to.eql("Zero");
+        expect(mfunc({count:1})).to.eql("1");
+      });
+
+      it("should add default 'other' branch to nested plurals", function() {
+        var mf = new MessageFormat( 'en' ).useDefaultOther();
+        var mfunc = mf.compile("{count, plural, =0 {Zero} other {{count2, plural, =0 {Zero}}}}");
+        expect(mfunc({count:0})).to.eql("Zero");
+        expect(mfunc({count:1,count2: 2})).to.eql("2");
+      });
+
+      it("should add default 'other' branch to nested selects", function() {
+        var mf = new MessageFormat( 'en' ).useDefaultOther();
+        var mfunc = mf.compile("{gender, select, male {Male} female {Female} other {{gender2, select, male {Male}}}}");
+        expect(mfunc({gender:"alien",gender2:"female"})).to.eql("female")
+      });
     });
 
     describe("Real World Uses", function  () {
